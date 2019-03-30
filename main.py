@@ -55,7 +55,7 @@ class Window(QWidget):
         if isinstance(self.main_layout, Buylayout):
             self.main_layout.code.setFocus()
         elif isinstance(self.main_layout, CheckItem):
-            self.main_layout.loadQty(self.main_layout.index)
+            self.main_layout.loadQty()
 
     def close(self):
         self.parent.show()
@@ -89,7 +89,7 @@ class FloatingWindow(QWidget):
 
 
 if __name__ == "__main__":
-    subprocess.Popen('taskkill /f /im explorer.exe', stdout=subprocess.PIPE)
+    # subprocess.Popen('taskkill /f /im explorer.exe', stdout=subprocess.PIPE)
     chrome_driver = webdriver.Chrome(options=options, executable_path=chromedriver_path)
     chrome_driver.get("https://www.lider.cl")
     app = QApplication([])

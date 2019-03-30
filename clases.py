@@ -137,55 +137,61 @@ class Buylayout(QGroupBox):
         self.layout = QGroupBox(self)
         self.layout.setGeometry(0,0, 768, 500)
         self.layout.lower()
-        contador = 0
-        for i in self.parent().database:
-            if i['Codigo'] == self.code.text():
-                if int(i['Cantidad'] )> 0:
-                    label = QLabel('Nombre: ' + i['Nombre'], self.layout)
-                    label.setGeometry(20, 250, 450, 50)
-                    label.setFont(QFont("Times", 16))
-                    label = QLabel('Marca: ' + i['Marca'], self.layout)
-                    label.setGeometry(20, 340, 450, 50)
-                    label.setFont(QFont("Times", 16))
-                    label = QLabel('Precio: $' + i['Precio'], self.layout)
-                    label.setGeometry(20, 430, 450, 50)
-                    label.setFont(QFont("Times", 16))
+        try:
+            item = self.parent().database[self.code.text()]
+            if int(item['Cantidad'] )> 0:
+                label = QLabel('Nombre: ' + item['Nombre'], self.layout)
+                label.setGeometry(20, 250, 450, 50)
+                label.setFont(QFont("Times", 16))
+                label = QLabel('Marca: ' + item['Marca'], self.layout)
+                label.setGeometry(20, 340, 450, 50)
+                label.setFont(QFont("Times", 16))
+                label = QLabel('Precio: $' + item['Precio'], self.layout)
+                label.setGeometry(20, 430, 450, 50)
+                label.setFont(QFont("Times", 16))
 
-                    self.imageShower.setPixmap(QPixmap(i['Imagen']).scaled(200, 200))
-                    self.imageShower.show()
-                    self.layout.show()
-                    self.total += int(i['Precio'])
-                    self.label_total.setText("   Total: ${}".format(str(self.total)))
+                self.imageShower.setPixmap(QPixmap(item['Imagen']).scaled(200, 200))
+                self.imageShower.show()
+                self.layout.show()
+                self.total += int(item['Precio'])
+                self.label_total.setText("   Total: ${}".format(str(self.total)))
 
-                    if i['Nombre'] in list(self.cart.keys()):
-                        self.cart[i['Nombre']][0] += 1
-                        self.cart[i['Nombre']][1].setText(str(self.cart[i['Nombre']][0]))
-                    else:
-                        label = QLabel(i['Nombre'], self.cart_layout)
-                        label.setGeometry(30, len(self.cart) * 40, 250, 30)
-                        label.show()
-                        label.setFont(QFont("Times",13))
-
-                        label = QLabel('1', self.cart_layout)
-                        label.setGeometry(300, len(self.cart) * 40, 100, 30)
-                        label.show()
-                        label.setFont(QFont("Times",13))
-                        self.cart[i['Nombre']] = [1, label]
-                    self.parent().database[contador]['Cantidad'] = str(int(self.parent().database[contador]['Cantidad']) - 1)
-                    with open('db.json','w') as file:
-                        json.dump(self.parent().database, file)
+                if item['Nombre'] in list(self.cart.keys()):
+                    self.cart[item['Nombre']][0] += 1
+                    self.cart[item['Nombre']][1].setText(str(self.cart[item['Nombre']][0]))
                 else:
-                    self.label.setText('''Lo sentimos, ese
-producto no está disponible''')
-                    self.label.show()
-                break
+                    label = QLabel(item['Nombre'], self.cart_layout)
+                    label.setGeometry(30, len(self.cart) * 40, 250, 30)
+                    label.show()
+                    label.setFont(QFont("Times",13))
 
-            contador += 1
+                    label = QLabel('1', self.cart_layout)
+                    label.setGeometry(300, len(self.cart) * 40, 100, 30)
+                    label.show()
+                    label.setFont(QFont("Times",13))
+                    self.cart[item['Nombre']] = [1, label]
+                self.parent().database[self.code.text()]['Cantidad'] = str(int(self.parent().database[self.code.text()]['Cantidad']) - 1)
+                with open('db.json','w') as file:
+                    json.dump(self.parent().database, file)
+            else:
+                self.label.setText('''Lo sentimos, ese
+producto no está disponible''')
+                self.label.show()
+        except:
+            pass
 
         self.code.setText('')
+        self.code.setFocus()
 
 
 class AddLayout(QGroupBox):
+    placeholders = {
+    'Codigo': '0000',
+    'Nombre':'Producto',
+    'Marca': 'Marca',
+    'Precio': '100',
+    'Cantidad': '1'
+    }
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -205,7 +211,7 @@ class AddLayout(QGroupBox):
         self.imageshower.setGeometry(col3,row14,col4,row3)
         self.imageshower.setPixmap(QPixmap('default.png').scaled(col4, row3))
 
-        self.fileName = ''
+        self.fileName = 'default.png'
 
         self.fields = {
         'Codigo':QLineEdit(self),
@@ -223,6 +229,7 @@ class AddLayout(QGroupBox):
             edit = self.fields[i]
             edit.setGeometry(col3 + 20, (row +70) * contador + 150, col4, row)
             edit.setFont(QFont("Times",15))
+            edit.setPlaceholderText(AddLayout.placeholders[i])
 
             contador += 1
 
@@ -237,18 +244,77 @@ class AddLayout(QGroupBox):
         self.imageshower.setPixmap(QPixmap(fileName).scaled(col4, row3))
 
     def createItem(self):
-        item = {}
-        for i in self.fields:
-            item[i] = self.fields[i].text()
-        item['Imagen'] = self.fileName
-        self.parent().database.append(item)
-        with open('db.json', 'w') as file:
-            json.dump(self.parent().database, file)
-        for i in self.fields.values():
-            i.setText('')
-        self.photofield.setText('Seleccionar imagen')
-        self.fileName = ''
-        self.imageshower.setPixmap(QPixmap('default.png').scaled(col4, row3))
+        try:
+            item = self.parent().database[self.fields['Codigo'].text()]
+            self.popup = AddMoreLayout(self)
+        except:
+            item = {}
+            for i in self.fields:
+                if not self.fields[i].text():
+                    self.fields[i].setText(AddLayout.placeholders[i])
+                item[i] = self.fields[i].text()
+            item['Imagen'] = self.fileName
+            self.parent().database[self.fields['Codigo'].text()] = item
+            with open('db.json', 'w') as file:
+                json.dump(self.parent().database, file)
+            for i in self.fields.values():
+                i.setText('')
+            self.photofield.setText('Seleccionar imagen')
+            self.fileName = ''
+            self.imageshower.setPixmap(QPixmap('default.png').scaled(col4, row3))
+
+class AddMoreLayout(QWidget):
+
+    def __init__(self, parent = None):
+        super().__init__(None)
+        self.parent = parent
+
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setGeometry(col2, row5, col6, row5)
+        self.setStyleSheet('background-color: rgb(255, 255, 255)')
+
+        self.label = QLabel('''Ese producto ya está inscrito.
+¿Deseas aumentar la Cantidad?''', self)
+        self.label.setFont(QFont("Times",15))
+        self.label.setGeometry(col, row/2, col4, row2)
+
+        self.label_qty = QLabel('1', self)
+        self.label_qty.setGeometry(col3, row2 + row/3, col, row)
+        self.label_qty.setFont(QFont("Times", 12))
+
+        self.boton_add = QPushButton('+', self)
+        self.boton_add.setGeometry(col3 + col/2, row2 + row/2, col/2, row/2)
+        self.boton_add.setFont(QFont("Times", 12))
+        self.boton_add.setStyleSheet('background-color: gray')
+        self.boton_add.clicked.connect(self.addQty)
+
+        self.boton_rest = QPushButton('-', self)
+        self.boton_rest.setGeometry(col2, row2 + row/2, col/2, row/2)
+        self.boton_rest.setFont(QFont("Times", 12))
+        self.boton_rest.setStyleSheet('background-color: gray')
+        self.boton_rest.clicked.connect(self.restQty)
+
+        self.boton_aceptar = QPushButton('Aceptar', self)
+        self.boton_aceptar.setGeometry(col3, row3 + row/2, col + col/2, row)
+        self.boton_aceptar.setFont(QFont("Times", 12))
+        self.boton_aceptar.setStyleSheet('background-color: gray')
+
+        self.boton_cancelar = QPushButton('Cancelar', self)
+        self.boton_cancelar.setGeometry(col, row3 + row/2, col + col/2, row)
+        self.boton_cancelar.setFont(QFont("Times", 12))
+        self.boton_cancelar.setStyleSheet('background-color: gray')
+
+
+        self.show()
+
+    def addQty(self):
+        self.label_qty.setText(str(int(self.label_qty.text() ) + 1))
+        self.boton_rest.setEnabled(True)
+
+    def restQty(self):
+        self.label_qty.setText(str(int(self.label_qty.text() ) - 1))
+        if self.label_qty.text() == '0':
+            self.boton_rest.setEnabled(False)
 
 
 class CheckItem(QGroupBox):
@@ -260,7 +326,6 @@ class CheckItem(QGroupBox):
         self.label.setGeometry(col3, row, col4, row)
         self.label.setFont(QFont("Times", 15))
         self.loaded = False
-        self.index = -1
 
         self.codeInput = QLineEdit(self)
         self.codeInput.setGeometry(0, 0, 0, 0)
@@ -270,10 +335,10 @@ class CheckItem(QGroupBox):
         self.itemShower = QGroupBox(self)
         self.itemShower.setGeometry(col1, 150, col8, row17)
 
-    def loadQty(self, value):
+    def loadQty(self):
         self.codeInput.setFocus()
         if self.loaded:
-            self.fields['Cantidad'].setText(self.parent().database[value]['Cantidad'])
+            self.fields['Cantidad'].setText(self.parent().database[self.fields['Codigo'].text()]['Cantidad'])
             if self.fields['Cantidad'].text() == '0':
                 self.plus_button.setEnabled(False)
             self.take_value.setText('0')
@@ -284,74 +349,71 @@ class CheckItem(QGroupBox):
 
         self.itemShower = QGroupBox(self)
         self.itemShower.setGeometry(col1, 150, col8, row17)
-        self.index = -1
-        for i in self.parent().database:
-            self.index += 1
-            if i['Codigo'] == self.codeInput.text():
-                self.loaded = True
-                self.takeButton = QPushButton('Retirar', self.itemShower)
-                self.takeButton.setGeometry(col3, row15, col2, row)
-                self.takeButton.setFont(QFont("Times", 15))
-                self.takeButton.clicked.connect(self.takeItem)
-                self.takeButton.show()
-                self.imageshower = QLabel(self.itemShower)
-                self.imageshower.setGeometry(col2,row11 ,col4,row3)
-                self.imageshower.show()
+        try:
+            item = self.parent().database[self.codeInput.text()]
+            self.loaded = True
+            self.takeButton = QPushButton('Retirar', self.itemShower)
+            self.takeButton.setGeometry(col3, row15, col2, row)
+            self.takeButton.setFont(QFont("Times", 15))
+            self.takeButton.clicked.connect(self.takeItem)
+            self.takeButton.show()
+            self.imageshower = QLabel(self.itemShower)
+            self.imageshower.setGeometry(col2,row11 ,col4,row3)
+            self.imageshower.show()
 
-                self.plus_button = QPushButton('+', self.itemShower)
-                self.plus_button.setGeometry(col5, row9, col, row)
-                self.plus_button.show()
-                self.plus_button.clicked.connect(self.add)
+            self.plus_button = QPushButton('+', self.itemShower)
+            self.plus_button.setGeometry(col5, row9, col, row)
+            self.plus_button.show()
+            self.plus_button.clicked.connect(self.add)
 
-                self.take_value = QLabel('0', self.itemShower)
-                self.take_value.setGeometry(col4 + 30, row9, col / 2 ,row)
-                self.take_value.show()
-                self.take_value.setFont(QFont("Times", 15))
+            self.take_value = QLabel('0', self.itemShower)
+            self.take_value.setGeometry(col4 + 30, row9, col / 2 ,row)
+            self.take_value.show()
+            self.take_value.setFont(QFont("Times", 15))
 
-                self.less_button = QPushButton('-', self.itemShower)
-                self.less_button.setGeometry(col3, row9, col, row)
-                self.less_button.show()
-                self.less_button.clicked.connect(self.less)
-                self.less_button.setEnabled(False)
+            self.less_button = QPushButton('-', self.itemShower)
+            self.less_button.setGeometry(col3, row9, col, row)
+            self.less_button.show()
+            self.less_button.clicked.connect(self.less)
+            self.less_button.setEnabled(False)
 
+            self.fileName = ''
 
+            self.fields = {
+            'Codigo':QLabel(item['Codigo'], self.itemShower),
+            'Nombre':QLabel(item['Nombre'], self.itemShower),
+            'Marca':QLabel(item['Marca'], self.itemShower),
+            'Precio':QLabel(item['Precio'], self.itemShower),
+            'Cantidad':QLabel(item['Cantidad'], self.itemShower)
+            }
+            self.imageshower.setPixmap(QPixmap(item['Imagen']).scaled(col4, row3))
+            contador = 0
+            for i in self.fields:
+                label = QLabel(i + ': ', self.itemShower)
+                label.setGeometry(col, (row + 70) * contador , col + 40, row)
+                label.setFont(QFont("Times",15))
+                label.show()
 
-                self.fileName = ''
+                edit = self.fields[i]
+                edit.setGeometry(col2 + 50, (row +70) * contador , col6, row)
+                edit.setFont(QFont("Times",15))
+                edit.show()
 
-                self.fields = {
-                'Codigo':QLabel(i['Codigo'], self.itemShower),
-                'Nombre':QLabel(i['Nombre'], self.itemShower),
-                'Marca':QLabel(i['Marca'], self.itemShower),
-                'Precio':QLabel(i['Precio'], self.itemShower),
-                'Cantidad':QLabel(i['Cantidad'], self.itemShower)
-                }
-                self.imageshower.setPixmap(QPixmap(i['Imagen']).scaled(col4, row3))
-                contador = 0
-                for i in self.fields:
-                    label = QLabel(i + ': ', self.itemShower)
-                    label.setGeometry(col, (row + 70) * contador , col + 40, row)
-                    label.setFont(QFont("Times",15))
-                    label.show()
+                contador += 1
+            self.itemShower.show()
+            if self.fields['Cantidad'].text() == '0':
+                self.plus_button.setEnabled(False)
 
-                    edit = self.fields[i]
-                    edit.setGeometry(col2 + 50, (row +70) * contador , col6, row)
-                    edit.setFont(QFont("Times",15))
-                    edit.show()
-
-                    contador += 1
-                self.itemShower.show()
-                if self.fields['Cantidad'].text() == '0':
-                    self.plus_button.setEnabled(False)
-                break
-
+        except:
+            pass
         self.codeInput.setFocus()
         self.codeInput.setText('')
 
 
     def takeItem(self):
         if int(self.fields['Cantidad'].text()) >= int(self.take_value.text()):
-            self.parent().database[self.index]['Cantidad'] = str(int(self.parent().database[self.index]['Cantidad']) - int(self.take_value.text()))
-            self.loadQty(self.index)
+            self.parent().database[self.fields['Codigo'].text()]['Cantidad'] = str(int(self.parent().database[self.fields['Codigo'].text()]['Cantidad']) - int(self.take_value.text()))
+            self.loadQty()
             with open('db.json','w') as file:
                 json.dump(self.parent().database, file)
         self.codeInput.setFocus()
